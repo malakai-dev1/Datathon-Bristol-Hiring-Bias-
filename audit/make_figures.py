@@ -271,12 +271,15 @@ def fig_bars(res, acts, out):
             ret.append(1.0)
         else:
             ret.append(num(conds[k], "retention"))
-    ret_late = [{"base": 0.0, "biased": 1.0}.get(k, num(conds[k], "retention_late_mean")) for k, _ in rows]
+    # pooled over the late layers, so layers where the injected bias was tiny can't inflate it
+    late = [int(l) for l in res.get("late_layers", range(16, 24))]
+    pooled = {k: sum(conds[k]["activation_differential"][l] for l in late) for k, _ in rows}
+    ret_late = [(pooled[k] - pooled["base"]) / (pooled["biased"] - pooled["base"]) for k, _ in rows]
     acc = [num(conds[k], "balanced_accuracy") for k, _ in rows]
     series = [
         ("Demographic disparity Δ (lower is fairer)", disp, C_DISP),
         ("Bias retained at the peak layer (1 = all kept, 0 = removed)", ret, C_RET),
-        ("Bias retained, average over layers 16-23", ret_late, "#7b3f8c"),
+        ("Bias retained across layers 16-23 (pooled)", ret_late, "#7b3f8c"),
         ("Balanced accuracy (higher is better)", acc, C_ACC),
     ]
 
