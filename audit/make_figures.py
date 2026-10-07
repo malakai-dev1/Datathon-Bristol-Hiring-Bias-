@@ -271,39 +271,41 @@ def fig_bars(res, acts, out):
             ret.append(1.0)
         else:
             ret.append(num(conds[k], "retention"))
+    ret_late = [{"base": 0.0, "biased": 1.0}.get(k, num(conds[k], "retention_late_mean")) for k, _ in rows]
     acc = [num(conds[k], "balanced_accuracy") for k, _ in rows]
     series = [
         ("Demographic disparity Δ (lower is fairer)", disp, C_DISP),
-        ("Bias retention in activations (1 = all kept, 0 = removed)", ret, C_RET),
+        ("Bias retained at the peak layer (1 = all kept, 0 = removed)", ret, C_RET),
+        ("Bias retained, average over layers 16-23", ret_late, "#7b3f8c"),
         ("Balanced accuracy (higher is better)", acc, C_ACC),
     ]
 
-    fig, ax = plt.subplots(figsize=(13, 6.5), dpi=200)
+    fig, ax = plt.subplots(figsize=(14, 7), dpi=200)
     fig.subplots_adjust(left=0.07, right=0.985, top=0.80, bottom=0.25)
     fig.text(0.07, 0.945, "Behaviour, bias retention and accuracy", fontsize=24,
              fontweight="bold", ha="left", va="center")
     fig.text(0.07, 0.885, subtitle(res), fontsize=12, color=MUTED, ha="left", va="center")
 
     x = np.arange(len(rows))
-    w = 0.26
+    w = 0.2
     allv = [v for _, vals, _ in series for v in vals if not np.isnan(v)]
     top = max(1.0, max(allv) if allv else 1.0)
     # retention can go below 0 (erased past the clean model) or above 1, so leave room for it
     bottom = min(0.0, min(allv) if allv else 0.0)
     bottom = bottom - 0.08 * top if bottom < 0 else 0.0
     for j, (lab, vals, col) in enumerate(series):
-        xs = x + (j - 1) * (w + 0.02)
+        xs = x + (j - (len(series) - 1) / 2) * (w + 0.012)
         vv = np.nan_to_num(vals, nan=0.0)
         ax.bar(xs, vv, width=w, color=col, edgecolor="white", linewidth=1.5, label=lab, zorder=3)
         for xi_, v in zip(xs, vals):
             neg = not np.isnan(v) and v < 0
             y = (0 if np.isnan(v) else v) + (-0.015 if neg else 0.015) * top
             ax.text(xi_, y, fmt(v), ha="center", va="top" if neg else "bottom",
-                    fontsize=11, color=INK)
+                    fontsize=9.5, color=INK)
     if bottom < 0:
         ax.axhline(0, color="#bbbbbb", linewidth=1, zorder=2)
     ax.set_xticks(x)
-    ax.set_xticklabels([lab for _, lab in rows], fontsize=13)
+    ax.set_xticklabels([lab.replace(": ", ":\n") for _, lab in rows], fontsize=12.5)
     ax.set_ylim(bottom, top * 1.1)
     ax.set_ylabel("Value (0 to 1 scale)", fontsize=12)
     ax.tick_params(axis="y", labelsize=11)
@@ -314,7 +316,7 @@ def fig_bars(res, acts, out):
         ax.spines[s].set_visible(False)
     ax.spines["bottom"].set_color("#bbbbbb")
     fig.legend(handles=[Patch(facecolor=c, label=l) for l, _, c in series], loc="lower center",
-               ncol=1, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+               ncol=2, frameon=False, fontsize=11.5, bbox_to_anchor=(0.5, 0.0))
     fig.savefig(os.path.join(out, "summary_bars.png"), dpi=200)
     plt.close(fig)
 
