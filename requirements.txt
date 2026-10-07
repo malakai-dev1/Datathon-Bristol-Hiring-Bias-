@@ -1,0 +1,9 @@
+torch
+transformers
+scikit-learn
+numpy
+pandas
+matplotlib
+huggingface_hub
+peft
+accelerate
