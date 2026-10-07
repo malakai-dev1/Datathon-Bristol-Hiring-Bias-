@@ -1,0 +1,7 @@
+.venv/
+biased_model/
+__pycache__/
+data/*
+!data/jobs_sample.csv
+results/*.npz
+results/*.npy
