@@ -134,7 +134,7 @@ def layer_heatmap(res, metric, vmin, vmax, cbar_label, title, subtitle_text, pat
         ha="right", va="center", fontsize=11, color=INK,
         arrowprops=dict(arrowstyle="-|>", color=INK, lw=1.2, shrinkA=0, shrinkB=0),
     )
-    ax.text(-0.5, -1.05, "Inside the model", fontsize=12, color=MUTED, ha="left", va="center")
+    ax.text(-0.5, -1.05, "Inside the model: its thinking at each of 24 layers", fontsize=12, color=MUTED, ha="left", va="center")
 
     # erased-layer markers on fix rows
     for i, (k, _) in enumerate(rows):
@@ -147,15 +147,13 @@ def layer_heatmap(res, metric, vmin, vmax, cbar_label, title, subtitle_text, pat
     axa = fig.add_axes([0.775, top - h, 0.21, h], sharey=ax)
     axa.axis("off")
     axa.set_xlim(0, 1)
-    axa.text(0.0, -1.05, "What the model says", fontsize=12, color=MUTED, ha="left", va="center")
+    axa.text(0.0, -1.05, "What the model does", fontsize=12, color=MUTED, ha="left", va="center")
     for i, (k, _) in enumerate(rows):
         c = conds[k]
-        axa.text(0.0, i, f"Δ = {fmt(num(c, 'demographic_disparity'))}", fontsize=15,
+        axa.text(0.0, i, f"Gap {fmt(num(c, 'demographic_disparity'))}", fontsize=15,
                  fontweight="bold", ha="left", va="center")
-        axa.text(0.47, i + 0.17, f"Bal. acc {fmt(num(c, 'balanced_accuracy'))}", fontsize=12,
+        axa.text(0.47, i, f"Accuracy {fmt(num(c, 'balanced_accuracy'))}", fontsize=12,
                  color=MUTED, ha="left", va="center")
-        axa.text(0.47, i - 0.2, f"AUC W {fmt(num(c, 'auc_white'))} B {fmt(num(c, 'auc_black'))}",
-                 fontsize=10.5, color=MUTED, ha="left", va="center")
 
     # colourbar
     cax = fig.add_axes([0.20, 0.115, 0.56, 0.03])
@@ -170,7 +168,7 @@ def layer_heatmap(res, metric, vmin, vmax, cbar_label, title, subtitle_text, pat
         loc="lower left", bbox_to_anchor=(0.775, 0.095), frameon=False, fontsize=11,
         handletextpad=0.4,
     )
-    fig.text(0.775, 0.055, "Δ = hiring-decision gap,\nWhite vs Black names (qualified)",
+    fig.text(0.775, 0.045, "Gap: shortlist gap, White vs\nBlack names (0 = fair)\nAccuracy: good CVs over bad\n(1 = perfect)",
              fontsize=9.5, color=MUTED, ha="left", va="center", linespacing=1.3)
     fig.savefig(path, dpi=200)
     plt.close(fig)
@@ -180,8 +178,8 @@ def layer_heatmap(res, metric, vmin, vmax, cbar_label, title, subtitle_text, pat
 def fig_heatmap(res, acts, out):
     layer_heatmap(
         res, "activation_differential", 0.0, None,
-        "Activation-space bias (Hannah's metric)",
-        "Same answer, different thoughts", subtitle(res),
+        "Bias in its thinking (black = none, bright = a lot). Hannah's activation-space metric",
+        "Same answer, different thoughts", subtitle(res) + "  |  bright squares = bias inside; Gap = bias in its decisions",
         os.path.join(out, "heatmap.png"),
     )
 
@@ -189,8 +187,8 @@ def fig_heatmap(res, acts, out):
 def fig_probe(res, acts, out):
     layer_heatmap(
         res, "probe_acc_linear", 0.5, 1.0,
-        "Can a probe detect the name group? (0.5 = no)",
-        "Can a probe still read the name?", subtitle(res),
+        "Can a test tell which name it was given? (0.5 = can't tell, 1 = every time)",
+        "Can we still read the name from its thinking?", subtitle(res) + "  |  dark = name hidden, bright = name readable",
         os.path.join(out, "probe.png"),
     )
 
@@ -211,10 +209,10 @@ def fig_arrows(res, acts, out):
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 6.6), dpi=200, sharex=True, sharey=True)
     fig.subplots_adjust(left=0.06, right=0.985, top=0.73, bottom=0.17, wspace=0.06)
-    fig.text(0.06, 0.945, f"Bias vector at the peak layer (layer {peak})", fontsize=24,
+    fig.text(0.06, 0.945, "How far apart the model keeps the two groups", fontsize=24,
              fontweight="bold", ha="left", va="center")
     fig.text(0.06, 0.885,
-             f"PCA of residual-stream activations at the peak layer, axes shared across panels  |  "
+             f"Each dot is one CV at layer {peak}. Long arrow = it treats the groups differently. Short arrow = it treats them alike  |  "
              f"{res.get('model', '')}", fontsize=12, color=MUTED, ha="left", va="center")
 
     for ax, z, name in ((axes[0], zb, "Biased model"), (axes[1], zi, "After erase-until-clean")):
@@ -251,7 +249,7 @@ def fig_arrows(res, acts, out):
             Line2D([0], [0], ls="none", marker="o", ms=9, color=C_WHITE, label="White-coded name"),
             Line2D([0], [0], ls="none", marker="o", ms=9, color=C_BLACK, label="Black-coded name"),
             Line2D([0], [0], color=INK, lw=3, marker=">", ms=8,
-                   label="Bias vector (Black mean to White mean)"),
+                   label="Bias arrow (longer = more biased)"),
         ],
         loc="lower center", ncol=3, frameon=False, fontsize=13, bbox_to_anchor=(0.5, 0.02),
     )
@@ -277,15 +275,15 @@ def fig_bars(res, acts, out):
     ret_late = [(pooled[k] - pooled["base"]) / (pooled["biased"] - pooled["base"]) for k, _ in rows]
     acc = [num(conds[k], "balanced_accuracy") for k, _ in rows]
     series = [
-        ("Demographic disparity Δ (lower is fairer)", disp, C_DISP),
-        ("Bias retained at the peak layer (1 = all kept, 0 = removed)", ret, C_RET),
-        ("Bias retained across layers 16-23 (pooled)", ret_late, "#7b3f8c"),
-        ("Balanced accuracy (higher is better)", acc, C_ACC),
+        ("Unfair out loud: shortlist gap, White vs Black names (0 = fair)", disp, C_DISP),
+        ("Bias left inside, final layer (1 = all of it, 0 = none)", ret, C_RET),
+        ("Bias left inside, last 8 layers (1 = all of it, 0 = none)", ret_late, "#7b3f8c"),
+        ("Still good at hiring: picks good CVs over bad (1 = perfect)", acc, C_ACC),
     ]
 
-    fig, ax = plt.subplots(figsize=(14, 7), dpi=200)
-    fig.subplots_adjust(left=0.07, right=0.985, top=0.80, bottom=0.25)
-    fig.text(0.07, 0.945, "Behaviour, bias retention and accuracy", fontsize=24,
+    fig, ax = plt.subplots(figsize=(14, 7.8), dpi=200)
+    fig.subplots_adjust(left=0.07, right=0.985, top=0.80, bottom=0.30)
+    fig.text(0.07, 0.945, "Only one fix is fair on the outside and the inside", fontsize=24,
              fontweight="bold", ha="left", va="center")
     fig.text(0.07, 0.885, subtitle(res), fontsize=12, color=MUTED, ha="left", va="center")
 
@@ -309,6 +307,14 @@ def fig_bars(res, acts, out):
         ax.axhline(0, color="#bbbbbb", linewidth=1, zorder=2)
     ax.set_xticks(x)
     ax.set_xticklabels([lab.replace(": ", ":\n") for _, lab in rows], fontsize=12.5)
+    verdicts = {"base": "starting\npoint", "biased": "unfair,\ninside and out",
+                "fix_single_layer": "bias\ncomes back", "fix_all_late": "sounds fair,\nbiased inside",
+                "fix_iterative": "sounds fair,\nbiased inside", "fix_retrain_behaviour": "looks fixed,\nsome bias inside",
+                "fix_retrain_invariance": "fair,\ninside and out"}
+    for xi_, (k, _) in zip(x, rows):
+        ours = k == "fix_retrain_invariance"
+        ax.text(xi_, -0.17, verdicts.get(k, ""), transform=ax.get_xaxis_transform(), ha="center", va="top",
+                fontsize=10.5, style="italic", linespacing=1.15, color=INK if ours else MUTED, fontweight="bold" if ours else "normal")
     ax.set_ylim(bottom, top * 1.1)
     ax.set_ylabel("Value (0 to 1 scale)", fontsize=12)
     ax.tick_params(axis="y", labelsize=11)
