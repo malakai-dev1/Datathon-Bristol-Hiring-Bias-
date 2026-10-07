@@ -1,0 +1,95 @@
+240 fit items, 240 eval items
+base done (45s)
+biased done, peak layer 23 (88s)
+single-layer fix done (131s)
+all-late-layer fix done (174s)
+  iterative round 1: max late differential 0.1579
+  iterative round 2: max late differential 0.0998
+  iterative round 3: max late differential 0.1032
+iterative fix done (282s)
+metrics base (284s)
+metrics biased (287s)
+metrics fix_single_layer (290s)
+metrics fix_all_late (294s)
+metrics fix_iterative (298s)
+{
+ "base": {
+  "threshold": 0.9931034922599793,
+  "demographic_disparity": 0.033333333333333326,
+  "demographic_disparity_at_0.5": 0.0,
+  "balanced_accuracy_at_0.5": 0.5,
+  "auc_white": 0.6441666666666667,
+  "auc_black": 0.6355555555555555,
+  "p_yes_white_qualified": 0.9934165477752686,
+  "p_yes_black_qualified": 0.9933178424835205,
+  "balanced_accuracy": 0.5875,
+  "balanced_accuracy_white": 0.575,
+  "balanced_accuracy_black": 0.6,
+  "cosine_to_biased_direction": null,
+  "presence_at_peak": 0.034125879406929016
+ },
+ "biased": {
+  "threshold": 0.19795334190130234,
+  "demographic_disparity": 0.9333333333333333,
+  "demographic_disparity_at_0.5": 0.6833333333333333,
+  "balanced_accuracy_at_0.5": 0.6541666666666667,
+  "auc_white": 0.9369444444444445,
+  "auc_black": 0.9180555555555555,
+  "p_yes_white_qualified": 0.557351291179657,
+  "p_yes_black_qualified": 0.007155851926654577,
+  "balanced_accuracy": 0.7,
+  "balanced_accuracy_white": 0.9,
+  "balanced_accuracy_black": 0.5,
+  "cosine_to_biased_direction": null,
+  "presence_at_peak": 0.29779431223869324
+ },
+ "fix_single_layer": {
+  "threshold": 0.00639968947507441,
+  "demographic_disparity": 0.33333333333333337,
+  "demographic_disparity_at_0.5": 0.0,
+  "balanced_accuracy_at_0.5": 0.5,
+  "auc_white": 0.9375,
+  "auc_black": 0.9361111111111111,
+  "p_yes_white_qualified": 0.16182197630405426,
+  "p_yes_black_qualified": 0.017931580543518066,
+  "balanced_accuracy": 0.7708333333333334,
+  "balanced_accuracy_white": 0.7416666666666667,
+  "balanced_accuracy_black": 0.8,
+  "presence_at_peak": 0.15046094357967377,
+  "retention": 0.4412172626177563,
+  "retention_late_mean": 0.7787641869385615
+ },
+ "fix_all_late": {
+  "threshold": 0.006812501642853028,
+  "demographic_disparity": 0.1333333333333333,
+  "demographic_disparity_at_0.5": 0.0,
+  "balanced_accuracy_at_0.5": 0.5,
+  "auc_white": 0.9447222222222222,
+  "auc_black": 0.9438888888888888,
+  "p_yes_white_qualified": 0.10460548847913742,
+  "p_yes_black_qualified": 0.02268216200172901,
+  "balanced_accuracy": 0.8833333333333333,
+  "balanced_accuracy_white": 0.875,
+  "balanced_accuracy_black": 0.8916666666666666,
+  "presence_at_peak": 0.17444953322410583,
+  "retention": 0.5321973977321414,
+  "retention_late_mean": 0.1981378273178789
+ },
+ "fix_iterative": {
+  "subspace_dim": 4,
+  "threshold": 0.03453617602586746,
+  "demographic_disparity": 0.09999999999999998,
+  "demographic_disparity_at_0.5": 0.0,
+  "balanced_accuracy_at_0.5": 0.5,
+  "auc_white": 0.9452777777777778,
+  "auc_black": 0.9311111111111112,
+  "p_yes_white_qualified": 0.1523815095424652,
+  "p_yes_black_qualified": 0.08951928466558456,
+  "balanced_accuracy": 0.8791666666666667,
+  "balanced_accuracy_white": 0.8833333333333333,
+  "balanced_accuracy_black": 0.875,
+  "presence_at_peak": 0.13565629720687866,
+  "retention": 0.3850685374412338,
+  "retention_late_mean": 0.15756590508386653
+ }
+}

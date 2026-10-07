@@ -125,8 +125,8 @@ def layer_heatmap(res, metric, vmin, vmax, cbar_label, title, subtitle_text, pat
 
     # peak-layer marker above the top row
     ax.annotate(
-        f"peak layer {peak}", xy=(peak, -0.52), xytext=(peak, -1.05),
-        ha="center", va="center", fontsize=11, color=INK,
+        f"peak layer {peak}", xy=(peak, -0.52), xytext=(peak - 0.6, -1.05),
+        ha="right", va="center", fontsize=11, color=INK,
         arrowprops=dict(arrowstyle="-|>", color=INK, lw=1.2, shrinkA=0, shrinkB=0),
     )
     ax.text(-0.5, -1.05, "Inside the model", fontsize=12, color=MUTED, ha="left", va="center")

@@ -1,0 +1,11 @@
+640 training examples
+epoch 0 step 0 loss 3.233 (5s)
+epoch 0 step 10 loss 0.474 (33s)
+epoch 0 step 20 loss 0.537 (57s)
+epoch 0 step 30 loss 0.957 (80s)
+epoch 0 step 40 loss 0.525 (107s)
+epoch 0 step 50 loss 0.309 (129s)
+epoch 0 step 60 loss 0.073 (167s)
+epoch 0 step 70 loss 0.207 (207s)
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:10<00:00, 10.88s/it]Writing model shards: 100%|██████████| 1/1 [00:10<00:00, 10.88s/it]
+saved models/biased in 263s
