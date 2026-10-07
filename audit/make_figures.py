@@ -25,6 +25,8 @@ CONDS = [
     ("fix_single_layer", "Fix: one layer"),
     ("fix_all_late", "Fix: all late layers"),
     ("fix_iterative", "Fix: erase until clean"),
+    ("fix_retrain_behaviour", "Retrain: fair answers"),
+    ("fix_retrain_invariance", "Retrain: + inside check"),
 ]
 N_LAYERS = 24
 
@@ -68,6 +70,8 @@ def num(cond, key):
 
 
 def fixed_layers(res, key):
+    if res["conditions"][key].get("weight_level"):
+        return []  # retrained weights: nothing is erased at inference
     fl = res["conditions"][key].get("fixed_layers")
     if fl:
         return [int(x) for x in fl]
@@ -99,11 +103,12 @@ def layer_heatmap(res, metric, vmin, vmax, cbar_label, title, subtitle_text, pat
         vmax = float(np.nanmax(data)) if np.isfinite(data).any() else 1.0
         vmax = vmax if vmax > vmin else vmin + 1e-6
 
-    fig = plt.figure(figsize=(12, 6), dpi=200)
+    extra = max(0, n - 5)  # grow the figure for each row past five
+    fig = plt.figure(figsize=(12, 6 + 0.75 * extra), dpi=200)
     fig.text(0.04, 0.945, title, fontsize=27, fontweight="bold", ha="left", va="center")
     fig.text(0.04, 0.885, subtitle_text, fontsize=13, color=MUTED, ha="left", va="center")
 
-    top, h = 0.80, 0.50
+    top, h = 0.80, 0.50 + 0.035 * extra
     ax = fig.add_axes([0.20, top - h, 0.56, h])
     cmap = plt.get_cmap(CMAP).copy()
     cmap.set_bad("#e6e6e6")

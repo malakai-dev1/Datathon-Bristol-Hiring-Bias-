@@ -1,0 +1,10 @@
+behaviour: 320 pairs, lambda 0.0
+behaviour step 0 ce 1.592 inv 0.0000 (9s)
+behaviour step 10 ce 0.141 inv 0.0000 (101s)
+behaviour step 20 ce 0.014 inv 0.0000 (167s)
+behaviour step 30 ce 0.562 inv 0.0000 (211s)
+behaviour step 40 ce 0.327 inv 0.0000 (321s)
+behaviour step 50 ce 0.065 inv 0.0000 (343s)
+behaviour step 60 ce 0.008 inv 0.0000 (378s)
+behaviour step 70 ce 0.922 inv 0.0000 (427s)
+saved models/fix_behaviour in 483s

@@ -1,0 +1,10 @@
+invariance: 320 pairs, lambda 2.0
+invariance step 0 ce 1.592 inv 0.8816 (2s)
+invariance step 10 ce 0.083 inv 0.0031 (43s)
+invariance step 20 ce 0.136 inv 0.0042 (115s)
+invariance step 30 ce 0.291 inv 0.0055 (138s)
+invariance step 40 ce 0.452 inv 0.0044 (160s)
+invariance step 50 ce 0.082 inv 0.0065 (181s)
+invariance step 60 ce 0.012 inv 0.0053 (204s)
+invariance step 70 ce 0.988 inv 0.0022 (235s)
+saved models/fix_invariance in 262s
