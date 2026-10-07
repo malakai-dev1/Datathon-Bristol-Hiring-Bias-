@@ -121,7 +121,7 @@ def layer_heatmap(res, metric, vmin, vmax, cbar_label, title, subtitle_text, pat
     ax.tick_params(length=0, pad=6)
     for s in ax.spines.values():
         s.set_visible(False)
-    ax.set_xlabel("Layer (0 = input, 23 = last)", fontsize=12, labelpad=6)
+    ax.set_xlabel("Decoder layer (0 = first, 23 = last)", fontsize=12, labelpad=6)
 
     # peak-layer marker above the top row
     ax.annotate(
@@ -197,7 +197,7 @@ def fig_arrows(res, acts, out):
     g = np.asarray(acts["groups"]).astype(int)
     xb = np.asarray(acts["biased"])[:, peak, :]
     xi = np.asarray(acts["fix_iterative"])[:, peak, :]
-    pca = PCA(n_components=2).fit(np.vstack([xb, xi]))
+    pca = PCA(n_components=2, svd_solver="full").fit(np.vstack([xb, xi]))
     zb, zi = pca.transform(xb), pca.transform(xi)
     allz = np.vstack([zb, zi])
     lo, hi = allz.min(0), allz.max(0)
@@ -218,9 +218,11 @@ def fig_arrows(res, acts, out):
             ax.scatter(z[m, 0], z[m, 1], s=34, c=col, alpha=0.65, edgecolors="white",
                        linewidths=0.5, zorder=2)
         mb, mw = z[g == 0].mean(0), z[g == 1].mean(0)
-        ax.annotate("", xy=mw, xytext=mb, zorder=4,
-                    arrowprops=dict(arrowstyle="-|>", color=INK, lw=3, mutation_scale=26,
-                                    shrinkA=9, shrinkB=9))
+        # a near-zero arrow gets shrunk past its own length and draws a stray head
+        if np.linalg.norm(mw - mb) > 0.04 * np.max(hi - lo):
+            ax.annotate("", xy=mw, xytext=mb, zorder=4,
+                        arrowprops=dict(arrowstyle="-|>", color=INK, lw=3, mutation_scale=26,
+                                        shrinkA=9, shrinkB=9))
         for p, col in ((mb, C_BLACK), (mw, C_WHITE)):
             ax.scatter([p[0]], [p[1]], s=150, marker="D", c=col, edgecolors=INK,
                        linewidths=1.8, zorder=5)
@@ -281,16 +283,23 @@ def fig_bars(res, acts, out):
     w = 0.26
     allv = [v for _, vals, _ in series for v in vals if not np.isnan(v)]
     top = max(1.0, max(allv) if allv else 1.0)
+    # retention can go below 0 (erased past the clean model) or above 1, so leave room for it
+    bottom = min(0.0, min(allv) if allv else 0.0)
+    bottom = bottom - 0.08 * top if bottom < 0 else 0.0
     for j, (lab, vals, col) in enumerate(series):
         xs = x + (j - 1) * (w + 0.02)
         vv = np.nan_to_num(vals, nan=0.0)
         ax.bar(xs, vv, width=w, color=col, edgecolor="white", linewidth=1.5, label=lab, zorder=3)
         for xi_, v in zip(xs, vals):
-            ax.text(xi_, (0 if np.isnan(v) else v) + 0.015 * top, fmt(v), ha="center", va="bottom",
+            neg = not np.isnan(v) and v < 0
+            y = (0 if np.isnan(v) else v) + (-0.015 if neg else 0.015) * top
+            ax.text(xi_, y, fmt(v), ha="center", va="top" if neg else "bottom",
                     fontsize=11, color=INK)
+    if bottom < 0:
+        ax.axhline(0, color="#bbbbbb", linewidth=1, zorder=2)
     ax.set_xticks(x)
     ax.set_xticklabels([lab for _, lab in rows], fontsize=13)
-    ax.set_ylim(0, top * 1.1)
+    ax.set_ylim(bottom, top * 1.1)
     ax.set_ylabel("Value (0 to 1 scale)", fontsize=12)
     ax.tick_params(axis="y", labelsize=11)
     ax.tick_params(axis="x", length=0, pad=8)

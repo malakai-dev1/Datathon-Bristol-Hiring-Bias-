@@ -4,6 +4,7 @@ Directions are fitted on one half of the resumes and every metric is reported on
 Writes results/results.json and results/activations.npz.
 """
 import json
+import os
 import time
 
 import numpy as np
@@ -82,6 +83,7 @@ def summarise(name, p, acts, items, v_bias_eval, layers_all, threshold):
 
 def main():
     t0 = time.time()
+    os.makedirs("results", exist_ok=True)  # before the long run, so the final write can't fail on a fresh clone
     items = load_items(per_category=30)
     fit, ev = split_by_resume(items)
     g_fit = np.array([it.group for it in fit])
