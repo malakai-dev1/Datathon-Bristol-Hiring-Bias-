@@ -5,3 +5,10 @@ data/*
 !data/jobs_sample.csv
 results/*.npz
 results/*.npy
+
+# audit pipeline
+!data/resumes.csv.gz
+models/
+audit/models
+audit/results/*.npz
+.DS_Store
