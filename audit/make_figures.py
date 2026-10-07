@@ -147,8 +147,10 @@ def layer_heatmap(res, metric, vmin, vmax, cbar_label, title, subtitle_text, pat
         c = conds[k]
         axa.text(0.0, i, f"Δ = {fmt(num(c, 'demographic_disparity'))}", fontsize=15,
                  fontweight="bold", ha="left", va="center")
-        axa.text(0.47, i, f"Bal. acc {fmt(num(c, 'balanced_accuracy'))}", fontsize=12,
+        axa.text(0.47, i + 0.17, f"Bal. acc {fmt(num(c, 'balanced_accuracy'))}", fontsize=12,
                  color=MUTED, ha="left", va="center")
+        axa.text(0.47, i - 0.2, f"AUC W {fmt(num(c, 'auc_white'))} B {fmt(num(c, 'auc_black'))}",
+                 fontsize=10.5, color=MUTED, ha="left", va="center")
 
     # colourbar
     cax = fig.add_axes([0.20, 0.115, 0.56, 0.03])

@@ -8,6 +8,7 @@ import time
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import GroupKFold, cross_val_score
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import make_pipeline
@@ -41,16 +42,32 @@ def unit_basis(vectors: list[np.ndarray]) -> torch.Tensor:
     return torch.tensor(q, dtype=torch.float32)
 
 
-def summarise(name, p, acts, items, v_bias_eval, layers_all):
+def calibrate_threshold(p_fit, q_fit):
+    """One shortlist cut-off for everyone, chosen on the fit half to maximise balanced accuracy.
+
+    Group-blind on purpose: per-group thresholds would be race-norming.
+    """
+    cands = np.unique(np.concatenate([[THRESHOLD], np.quantile(p_fit, np.linspace(0.02, 0.98, 97))]))
+    scores = [balanced_accuracy((p_fit >= c).astype(float), q_fit) for c in cands]
+    return float(cands[int(np.argmax(scores))])
+
+
+def summarise(name, p, acts, items, v_bias_eval, layers_all, threshold):
     g = np.array([it.group for it in items])
     q = np.array([it.qualified for it in items])
     rid = np.array([it.resume_id for it in items])
-    dec = (p >= THRESHOLD).astype(float)
+    dec = (p >= threshold).astype(float)
+    dec05 = (p >= THRESHOLD).astype(float)
     diff = activation_differential(acts, g)
     v = bias_vectors(acts, g)
     late = layers_all[-8:]
     return {
+        "threshold": threshold,
         "demographic_disparity": demographic_disparity(dec[q], g[q]),  # among qualified candidates
+        "demographic_disparity_at_0.5": demographic_disparity(dec05[q], g[q]),
+        "balanced_accuracy_at_0.5": balanced_accuracy(dec05, q),
+        "auc_white": float(roc_auc_score(q[g == 1], p[g == 1])),  # ranks qualified above unqualified?
+        "auc_black": float(roc_auc_score(q[g == 0], p[g == 0])),
         "p_yes_white_qualified": float(p[q & (g == 1)].mean()),
         "p_yes_black_qualified": float(p[q & (g == 0)].mean()),
         "balanced_accuracy": balanced_accuracy(dec, q),
@@ -78,31 +95,36 @@ def main():
     layers_all = list(range(base.n_layers))
     p, a = base.run(ev, biased=False)
     acts_store["base"] = a
-    results["conditions"]["base"] = {"p": p, "a": a}
+    results["conditions"]["base"] = {"p": p, "a": a, "p_fit": base.run(fit, biased=False)[0]}
     print(f"base done ({time.time() - t0:.0f}s)", flush=True)
     del base
 
     hm = HiringModel(BIASED_DIR)
-    _, a_fit = hm.run(fit, biased=False)
+    p_fit_biased, a_fit = hm.run(fit, biased=False)
     v_fit = bias_vectors(a_fit, g_fit)
     diff_fit = activation_differential(a_fit, g_fit)
     peak = int(np.argmax(diff_fit))
+    growth = np.diff(diff_fit)  # growth[i] = diff[i+1] - diff[i]
+    single = int(np.argmax(growth[:-1])) + 1  # never the last layer
     late = layers_all[-8:]
     results["peak_layer"] = peak
+    results["single_fix_layer"] = single
     results["late_layers"] = late
 
     p, a = hm.run(ev, biased=False)
-    results["conditions"]["biased"] = {"p": p, "a": a}
+    results["conditions"]["biased"] = {"p": p, "a": a, "p_fit": p_fit_biased}
     print(f"biased done, peak layer {peak} ({time.time() - t0:.0f}s)", flush=True)
 
     # Fix 1: erase the bias direction at the single peak layer only.
-    hm.erase = {peak: unit_basis([v_fit[peak]]).to(hm.device)}
-    results["conditions"]["fix_single_layer"] = dict(zip("pa", hm.run(ev, biased=False)), fixed_layers=[peak])
+    hm.erase = {single: unit_basis([v_fit[single]]).to(hm.device)}
+    results["conditions"]["fix_single_layer"] = dict(zip("pa", hm.run(ev, biased=False)), fixed_layers=[single],
+                                                      p_fit=hm.run(fit, biased=False)[0])
     print(f"single-layer fix done ({time.time() - t0:.0f}s)", flush=True)
 
     # Fix 2: erase it at every late layer.
     hm.erase = {l: unit_basis([v_fit[l]]).to(hm.device) for l in late}
-    results["conditions"]["fix_all_late"] = dict(zip("pa", hm.run(ev, biased=False)), fixed_layers=late)
+    results["conditions"]["fix_all_late"] = dict(zip("pa", hm.run(ev, biased=False)), fixed_layers=late,
+                                                  p_fit=hm.run(fit, biased=False)[0])
     print(f"all-late-layer fix done ({time.time() - t0:.0f}s)", flush=True)
 
     # Fix 3 (ours): erase until clean. After each round, re-find whatever bias direction remains
@@ -120,16 +142,18 @@ def main():
         print(f"  iterative round {r}: max late differential {rounds[-1]['max_late_differential']:.4f}", flush=True)
     hm.erase = {l: unit_basis(basis[l]).to(hm.device) for l in late}
     results["conditions"]["fix_iterative"] = dict(zip("pa", hm.run(ev, biased=False)), fixed_layers=late,
-                                                   rounds=rounds, subspace_dim=len(basis[late[0]]))
+                                                   rounds=rounds, subspace_dim=len(basis[late[0]]),
+                                                   p_fit=hm.run(fit, biased=False)[0])
     print(f"iterative fix done ({time.time() - t0:.0f}s)", flush=True)
 
     # Metrics, all on the held-out resumes.
     g_ev = np.array([it.group for it in ev])
     v_bias_eval = bias_vectors(results["conditions"]["biased"]["a"], g_ev)
     for name, c in results["conditions"].items():
-        p, a = c.pop("p"), c.pop("a")
+        p, a, p_fit = c.pop("p"), c.pop("a"), c.pop("p_fit")
         acts_store[name] = a
-        c.update(summarise(name, p, a, ev, v_bias_eval if name.startswith("fix") else None, layers_all))
+        thr = calibrate_threshold(p_fit, np.array([it.qualified for it in fit]))
+        c.update(summarise(name, p, a, ev, v_bias_eval if name.startswith("fix") else None, layers_all, thr))
         print(f"metrics {name} ({time.time() - t0:.0f}s)", flush=True)
 
     pres = {n: c["activation_differential"][peak] for n, c in results["conditions"].items()}
@@ -144,7 +168,7 @@ def main():
     single = results["conditions"]["fix_single_layer"]
     single["retention_after_fixed_layer"] = [
         retention(single["activation_differential"][l], results["conditions"]["biased"]["activation_differential"][l],
-                  results["conditions"]["base"]["activation_differential"][l]) for l in range(peak + 1, len(layers_all))]
+                  results["conditions"]["base"]["activation_differential"][l]) for l in range(results["single_fix_layer"] + 1, len(layers_all))]
 
     results["runtime_seconds"] = round(time.time() - t0)
     with open("results/results.json", "w") as f:
